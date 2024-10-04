@@ -1,0 +1,15 @@
+%dw 2.0
+
+type auto_f0bfcfd4_c931_4d8a_81f4_2bb166c70111_Input_Payload = {
+  date?: String, 
+  orderId: Number, 
+  totalPrice?: Number, 
+  customerInfos: {
+    customerAddress?: String, 
+    customerName?: String, 
+    _?: Any
+  }, 
+  products: Array<{    quantity?: Number,     productId: String,     price?: Number | Number,     companyName: String,     productName?: String,     _?: Any  }>, 
+  _?: Any
+}
+

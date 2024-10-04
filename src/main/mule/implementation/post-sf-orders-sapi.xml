@@ -1,21 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-	<flow name="post-sf-orders-sapiFlow" doc:id="b61bd119-4239-4eb3-b844-8cf6032701cc" >
-		<http:listener doc:name="Listener" doc:id="ed9b2fa9-3856-420e-a3ef-8780b46b89bd" config-ref="HTTP_Listener_config" path="/orders"/>
-		<ee:transform doc:name="hello" doc:id="099813eb-bd7b-47c3-b8ad-a1cc57b4b3bc" >
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<sub-flow name="post-sf-orders-sapi" doc:id="f0bfcfd4-c931-4d8a-81f4-2bb166c70111" >
+		<logger level="DEBUG" doc:name="Payload Before Request" doc:id="9b8b670f-54ba-43d8-943e-c277f7510207" message="#[payload]" />
+		<!-- [STUDIO:"Query"]<salesforce:query doc:name="Query" doc:id="9e90d1c3-483f-4176-ab94-e6aa188ab9fc" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[SELECT FIELDS(ALL) FROM order LIMIT 200
+&#93;&#93;></salesforce:salesforce-query>
+		</salesforce:query> [STUDIO] -->
+		<ee:transform doc:name="Mapping entry" doc:id="00fa7292-9a7e-49bb-9f45-47fff69ba3bc" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
+output application/java
 ---
-{
-	"message" : "hello"
-}]]></ee:set-payload>
+[{
+	Id: payload.orderId,
+	AccountId: "001Qy00000WqOdgIAF",
+	BillingStreet: payload.customerInfos.customerAdress,
+	OrderNumber: "00000100",
+	CreatedDate: "2024-10-04T13:38:33.000Z",
+	
+	
+}]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-	</flow>
+		<!-- [STUDIO:"Describe sobject"]<salesforce:describe-sobject type="Order" doc:name="Describe sobject" doc:id="f8183564-4282-4098-a1f5-a7ee8920b1d9" config-ref="Salesforce_Config" /> [STUDIO] -->
+		<salesforce:create type="Order" doc:name="Create an Order in Salesforce" doc:id="c669ec63-34e0-4fab-aab5-aaa884387a3d" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Show payload" doc:id="100ff959-1ee9-4afb-a5d3-e34fd016af02">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Payload After Request" doc:id="1f0a2122-759b-4bad-b0c2-f87f1b72bdf9" message="#[payload]" />
+	</sub-flow>
 </mule>

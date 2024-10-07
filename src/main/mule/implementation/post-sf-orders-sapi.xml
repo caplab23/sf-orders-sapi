@@ -8,6 +8,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
 	<sub-flow name="post-sf-orders-sapi" doc:id="f0bfcfd4-c931-4d8a-81f4-2bb166c70111" >
 		<logger level="DEBUG" doc:name="Payload Before Request" doc:id="9b8b670f-54ba-43d8-943e-c277f7510207" message="#[payload]" />
+		<set-variable value="#[payload]" doc:name="Saved Payload" doc:id="585374da-c242-48f7-bbf2-0a4deef85074" variableName="savedPayload" />
 		<ee:transform doc:name="Mapping entry" doc:id="00fa7292-9a7e-49bb-9f45-47fff69ba3bc">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -20,12 +21,13 @@ output application/java
     BillingCountry: (payload.customerInfos.customerAddress splitBy (/,/))[2],
 	EffectiveDate: payload.date as Date,
 	Status: "Draft",
+	//Produit__c: payload.products.productId
+
 }]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<salesforce:create type="Order" doc:name="Create an Order in Salesforce" doc:id="c669ec63-34e0-4fab-aab5-aaa884387a3d" config-ref="Salesforce_Config" />
-		<set-variable value="#[payload.items[0].id]" doc:name="OrderSfId" doc:id="6021c00c-4025-4a29-a8e3-e9c581e5e5c7" variableName="OrderSfId" />
-		<ee:transform doc:name="Show payload" doc:id="100ff959-1ee9-4afb-a5d3-e34fd016af02">
+		<salesforce:create doc:name="Create an Order in Salesforce" doc:id="c669ec63-34e0-4fab-aab5-aaa884387a3d" config-ref="Salesforce_Config" type="Order"/>
+		<ee:transform doc:name="Show payload" doc:id="65d70b70-d9a2-456f-8edd-3110ba1d8341">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -33,30 +35,29 @@ output application/json
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<!-- [STUDIO:"Query"]<salesforce:query doc:name="Query" doc:id="a2126351-9220-43cf-b704-407b9485b018" config-ref="Salesforce_Config">
-			<salesforce:salesforce-query ><![CDATA[SELECT Id from order Where Id = ':orderSF'
-INSERT INTO order.Product__c ('CodeProduct')
-VALUES ('PE4646')
-&#93;&#93;></salesforce:salesforce-query>
-			<salesforce:parameters ><![CDATA[#[output application/java
-&#45;&#45;-
-{
-	orderSF : vars.OrderSfId
-}&#93;&#93;&#93;></salesforce:parameters>
-		</salesforce:query> [STUDIO] -->
+		<set-variable value="#[payload.items[0].id]" doc:name="OrderSfId" doc:id="6021c00c-4025-4a29-a8e3-e9c581e5e5c7" variableName="OrderSfId" />
+		<ee:transform doc:name="mapping" doc:id="100ff959-1ee9-4afb-a5d3-e34fd016af02">
+			<ee:message>
+				<ee:set-payload><![CDATA[output application/java
+---
+
+vars.savedPayload.products map ( item ) -> {
+    PricebookEntryId: item.pricebookEntryId,
+    Quantity: item.quantity,
+    UnitPrice: item.price
+   }
+    
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create doc:name="Create OrderItems" doc:id="3680475b-36de-466c-b666-c841d1ccbeb2" config-ref="Salesforce_Config" type="OrderItem"/>
 		<ee:transform doc:name="Payload after request" doc:id="2e9ac24c-894a-4bbf-8db2-2382537ce7aa">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-payload map ((item) -> {
-    Id: item.Id,
-    Name: item.Name,
-    BillingCity: item.BillingCity,
-    BillingPostalCode: item.BillingPostalCode, 
-    BillingAddress: item.BillingAddress,
-    BillingCountry: item.BillingCountry
-})]]></ee:set-payload>
+payload ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<logger level="DEBUG" doc:name="Payload After Request" doc:id="1f0a2122-759b-4bad-b0c2-f87f1b72bdf9" message="#[payload]" />

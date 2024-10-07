@@ -42,7 +42,8 @@ payload]]></ee:set-payload>
 ---
 
 vars.savedPayload.products map ( item ) -> {
-    PricebookEntryId: item.pricebookEntryId,
+	OrderId: vars.OrderSfId,
+    PricebookEntryId: '01uQy0000027sU5IAI',
     Quantity: item.quantity,
     UnitPrice: item.price
    }

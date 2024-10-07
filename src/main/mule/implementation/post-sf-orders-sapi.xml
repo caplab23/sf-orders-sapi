@@ -8,28 +8,23 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
 	<sub-flow name="post-sf-orders-sapi" doc:id="f0bfcfd4-c931-4d8a-81f4-2bb166c70111" >
 		<logger level="DEBUG" doc:name="Payload Before Request" doc:id="9b8b670f-54ba-43d8-943e-c277f7510207" message="#[payload]" />
-		<!-- [STUDIO:"Query"]<salesforce:query doc:name="Query" doc:id="9e90d1c3-483f-4176-ab94-e6aa188ab9fc" config-ref="Salesforce_Config">
-			<salesforce:salesforce-query><![CDATA[SELECT FIELDS(ALL) FROM order LIMIT 200
-&#93;&#93;></salesforce:salesforce-query>
-		</salesforce:query> [STUDIO] -->
-		<ee:transform doc:name="Mapping entry" doc:id="00fa7292-9a7e-49bb-9f45-47fff69ba3bc" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+		<ee:transform doc:name="Mapping entry" doc:id="00fa7292-9a7e-49bb-9f45-47fff69ba3bc">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 [{
-	Id: payload.orderId,
-	AccountId: "001Qy00000WqOdgIAF",
-	BillingStreet: payload.customerInfos.customerAdress,
-	OrderNumber: "00000100",
-	CreatedDate: "2024-10-04T13:38:33.000Z",
-	
-	
+	AccountId: "001Qy00000X68vxIAB",
+	BillingStreet: (payload.customerInfos.customerAddress splitBy (/,/))[0],
+    BillingCity: (payload.customerInfos.customerAddress splitBy (/,/))[1],
+    BillingCountry: (payload.customerInfos.customerAddress splitBy (/,/))[2],
+	EffectiveDate: payload.date as Date,
+	Status: "Draft",
 }]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<!-- [STUDIO:"Describe sobject"]<salesforce:describe-sobject type="Order" doc:name="Describe sobject" doc:id="f8183564-4282-4098-a1f5-a7ee8920b1d9" config-ref="Salesforce_Config" /> [STUDIO] -->
-		<salesforce:create type="Order" doc:name="Create an Order in Salesforce" doc:id="c669ec63-34e0-4fab-aab5-aaa884387a3d" config-ref="Salesforce_Config"/>
+		<salesforce:create type="Order" doc:name="Create an Order in Salesforce" doc:id="c669ec63-34e0-4fab-aab5-aaa884387a3d" config-ref="Salesforce_Config" />
+		<set-variable value="#[payload.items[0].id]" doc:name="OrderSfId" doc:id="6021c00c-4025-4a29-a8e3-e9c581e5e5c7" variableName="OrderSfId" />
 		<ee:transform doc:name="Show payload" doc:id="100ff959-1ee9-4afb-a5d3-e34fd016af02">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -38,6 +33,38 @@ output application/json
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+		<!-- [STUDIO:"Query"]<salesforce:query doc:name="Query" doc:id="a2126351-9220-43cf-b704-407b9485b018" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id from order Where Id = ':orderSF'
+INSERT INTO order.Product__c ('CodeProduct')
+VALUES ('PE4646')
+&#93;&#93;></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+&#45;&#45;-
+{
+	orderSF : vars.OrderSfId
+}&#93;&#93;&#93;></salesforce:parameters>
+		</salesforce:query> [STUDIO] -->
+		<ee:transform doc:name="Payload after request" doc:id="2e9ac24c-894a-4bbf-8db2-2382537ce7aa">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item) -> {
+    Id: item.Id,
+    Name: item.Name,
+    BillingCity: item.BillingCity,
+    BillingPostalCode: item.BillingPostalCode, 
+    BillingAddress: item.BillingAddress,
+    BillingCountry: item.BillingCountry
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 		<logger level="DEBUG" doc:name="Payload After Request" doc:id="1f0a2122-759b-4bad-b0c2-f87f1b72bdf9" message="#[payload]" />
+	</sub-flow>
+	<sub-flow name="post-sf-orders-sapiSub_Flow" doc:id="d3952796-ccd9-4eaa-966c-691b1f32bfee" >
+		<salesforce:query doc:name="Query" doc:id="9e90d1c3-483f-4176-ab94-e6aa188ab9fc" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[SELECT FIELDS(ALL) FROM order LIMIT 200
+]]></salesforce:salesforce-query>
+		</salesforce:query>
 	</sub-flow>
 </mule>

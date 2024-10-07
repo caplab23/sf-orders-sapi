@@ -62,10 +62,4 @@ payload ]]></ee:set-payload>
 		</ee:transform>
 		<logger level="DEBUG" doc:name="Payload After Request" doc:id="1f0a2122-759b-4bad-b0c2-f87f1b72bdf9" message="#[payload]" />
 	</sub-flow>
-	<sub-flow name="post-sf-orders-sapiSub_Flow" doc:id="d3952796-ccd9-4eaa-966c-691b1f32bfee" >
-		<salesforce:query doc:name="Query" doc:id="9e90d1c3-483f-4176-ab94-e6aa188ab9fc" config-ref="Salesforce_Config">
-			<salesforce:salesforce-query><![CDATA[SELECT FIELDS(ALL) FROM order LIMIT 200
-]]></salesforce:salesforce-query>
-		</salesforce:query>
-	</sub-flow>
 </mule>

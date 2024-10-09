@@ -8,7 +8,14 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
 	<sub-flow name="post-sf-orders-sapi" doc:id="f0bfcfd4-c931-4d8a-81f4-2bb166c70111" >
 		<logger level="DEBUG" doc:name="Payload Before Request" doc:id="9b8b670f-54ba-43d8-943e-c277f7510207" message="#[payload]" />
-		<set-variable value="#[payload]" doc:name="Saved Payload" doc:id="585374da-c242-48f7-bbf2-0a4deef85074" variableName="savedPayload" />
+		<ee:transform doc:name="Transform Message" doc:id="0457a742-9a02-488a-84c1-c5f00ec5203c" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="savedPayload" ><![CDATA[payload]]></ee:set-variable>
+				<ee:set-variable variableName="pricebook2Id" ><![CDATA["01sQy0000065MZ8IAM"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
 		<ee:transform doc:name="Mapping entry" doc:id="00fa7292-9a7e-49bb-9f45-47fff69ba3bc">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -21,6 +28,9 @@ output application/java
     BillingCountry: (payload.customerInfos.customerAddress splitBy (/,/))[2],
 	EffectiveDate: payload.date as Date,
 	Status: "Draft",
+	ContractId: "800Qy00000MNOOMIA5",
+	Pricebook2Id: vars.pricebook2Id,
+	//TotalAmount: payload.totalPrice as String,
 	//Produit__c: payload.products.productId
 
 }]]]></ee:set-payload>
@@ -36,20 +46,28 @@ payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<set-variable value="#[payload.items[0].id]" doc:name="OrderSfId" doc:id="6021c00c-4025-4a29-a8e3-e9c581e5e5c7" variableName="OrderSfId" />
+		<salesforce:query doc:name="Query" doc:id="0845e698-6897-4668-b0fc-ed7ccc15089a" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id, Name, ProductCode
+FROM PricebookEntry
+WHERE Pricebook2Id = ':pricebook2Id']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"pricebook2Id" : vars.pricebook2Id
+}]]]></salesforce:parameters>
+		</salesforce:query>
 		<ee:transform doc:name="mapping" doc:id="100ff959-1ee9-4afb-a5d3-e34fd016af02">
 			<ee:message>
 				<ee:set-payload><![CDATA[output application/java
+var priceBookEntryId = flatten(vars.savedPayload.products map ((products, i) -> payload filter ((entries, j) -> entries.ProductCode == products.productId)))
+fun fetchId(item) = (priceBookEntryId filter ((value, index) -> value.ProductCode == item.productId)).Id joinBy ""
 ---
-
 vars.savedPayload.products map ( item ) -> {
-	OrderId: vars.OrderSfId,
-    PricebookEntryId: '01uQy0000027sU5IAI',
-    Quantity: item.quantity,
-    UnitPrice: item.price
-   }
-    
-
-]]></ee:set-payload>
+	"OrderId": vars.OrderSfId,
+	"PricebookEntryId": fetchId(item),
+    "Quantity": item.quantity,
+    "UnitPrice": item.price
+}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<salesforce:create doc:name="Create OrderItems" doc:id="3680475b-36de-466c-b666-c841d1ccbeb2" config-ref="Salesforce_Config" type="OrderItem"/>

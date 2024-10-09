@@ -1,28 +1,16 @@
 api:
-  id: "19215602"
+  id: "19990334"
   listener:
     path: "/*"
-
 http:
   listener:
     host: "0.0.0.0"
-    port: "8091" 
-  request:
-    host: "host"
-    port: "123"
-    basePath: "/"
-    path: "/"
-    clientId: "max"
-    clientSecret: "mule"
+    port: "8081"
     
-salesforce:
-  client_id: ""
-  client_secret: ""
-  url: "https:salesforce.com"
-  token-endpoint: ""
-  username: ""
-  password: ""
-  token: ""
+salesforce: 
+  username: ${secure::security.salesforce.username}
+  password: ${secure::security.salesforce.password}
+  token: ${secure::security.salesforce.token}
   responseTimeout: "60"
   connectionTimeout: "60"
   async-data-retry:

@@ -2,18 +2,10 @@ api:
   id: "123"
   listener:
     path: "/*"
-
 http:
   listener:
     host: "0.0.0.0"
-    port: "8093" 
-  request:
-    host: "host"
-    port: "123"
-    basePath: "/"
-    path: "/"
-    clientId: "max"
-    clientSecret: "mule"
+    port: "8093"
     
 salesforce: 
   username: ${secure::security.salesforce.username}
